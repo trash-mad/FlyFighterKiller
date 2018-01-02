@@ -3,6 +3,9 @@
 #include <QByteArray>
 #include <QMainWindow>
 
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
 
 #include <QDialog>
 #include <QFrame>
@@ -15,6 +18,9 @@
 #include <QObject>
 #include <QPushButton>
 #include <QLabel>
+#include <QTableView>
+#include <QStandardItemModel>
+#include <QStandardItem>
 
 #include <QMessageBox>
 #include <QInputDialog>
@@ -23,60 +29,72 @@ Resources res;
 //Для получения лямбды в параметры конструктора
 #include <functional>
 
-class MainWindow{
+class RecordsWindow{
+QDialog *dialog;
 QHBoxLayout *horizontalLayout;
 QFrame *frame;
 QVBoxLayout *verticalLayout;
 QLabel *label;
-QPushButton *pushButton;
-QPushButton *pushButton_2;
-QDialog *dialog;
+QTableView *tableView;
+
 public:
-    MainWindow(){
+    RecordsWindow(){
         dialog=new QDialog();
         setupUi(dialog);
+
+        //Заполнение таблицы рекордов
+        QStandardItemModel *model = new QStandardItemModel;
+        QStandardItem *item;
+
+        QStringList horizontalHeader;
+        horizontalHeader << "Имя" << "Сбито самолетов";
+        model->setHorizontalHeaderLabels(horizontalHeader);
+
+        QSqlQuery query;
+        int currentline=0;
+        query.exec("SELECT Рекорды.[Имя], Рекорды.[Число сбитых самолетов] FROM Рекорды ORDER BY  Рекорды.[Число сбитых самолетов] DESC;");
+        while (query.next())
+        {
+            item = new QStandardItem(query.value(0).toString());
+            model->setItem(currentline, 0, item);
+            item = new QStandardItem(query.value(1).toString());
+            model->setItem(currentline, 1, item);
+            currentline++;
+        }
+
+        tableView->setModel(model);
+        tableView->resizeRowsToContents();
+        tableView->resizeColumnsToContents();
+
+        dialog->show();
     }
+
     void setupUi(QDialog *Dialog)
     {
-       Dialog->resize(567, 470);
-       horizontalLayout = new QHBoxLayout(Dialog);
-       frame = new QFrame(Dialog);
-       frame->setMinimumSize(QSize(271, 261));
-       frame->setMaximumSize(QSize(271, 261));
-       frame->setFrameShape(QFrame::StyledPanel);
-       frame->setFrameShadow(QFrame::Raised);
-       verticalLayout = new QVBoxLayout(frame);
-       label = new QLabel(frame);
-       label->setMinimumSize(QSize(251, 127));
-       label->setText("Какие самолеты?");
-       QFont font;
-       font.setFamily(QStringLiteral("Segoe UI"));
-       font.setPointSize(20);
-       font.setBold(false);
-       font.setWeight(50);
-       label->setFont(font);
-       label->setAlignment(Qt::AlignCenter);
-       verticalLayout->addWidget(label);
-       pushButton = new QPushButton(frame);
-       pushButton->setMinimumSize(QSize(0, 51));
-       pushButton->setFocus();
-       pushButton->setText("Начать игру");
-       verticalLayout->addWidget(pushButton);
-       pushButton_2 = new QPushButton(frame);
-       pushButton_2->setMinimumSize(QSize(0, 51));
-       pushButton_2->setText("Рекорды");
-       verticalLayout->addWidget(pushButton_2);
-       horizontalLayout->addWidget(frame);
-   }
-
-   void Show(){
-       dialog->show();
-   }
-
-   void Hide(){
-       dialog->hide();
-   }
-
+        Dialog->resize(518, 518);
+        horizontalLayout = new QHBoxLayout(Dialog);
+        frame = new QFrame(Dialog);
+        frame->setMinimumSize(QSize(500, 500));
+        frame->setMaximumSize(QSize(500, 500));
+        frame->setFrameShape(QFrame::StyledPanel);
+        frame->setFrameShadow(QFrame::Raised);
+        verticalLayout = new QVBoxLayout(frame);
+        label = new QLabel(frame);
+        label->setMinimumSize(QSize(0, 61));
+        label->setMaximumSize(QSize(16777215, 61));
+        QFont font;
+        font.setFamily(QStringLiteral("Segoe UI"));
+        font.setPointSize(20);
+        font.setBold(false);
+        font.setWeight(50);
+        label->setFont(font);
+        label->setAlignment(Qt::AlignCenter);
+        label->setText("Рекорды");
+        verticalLayout->addWidget(label);
+        tableView = new QTableView(frame);
+        verticalLayout->addWidget(tableView);
+        horizontalLayout->addWidget(frame);
+    }
 };
 
 class GameWindow{
@@ -231,9 +249,108 @@ private:
 
 };
 
+class MainWindow{
+QHBoxLayout *horizontalLayout;
+QFrame *frame;
+QVBoxLayout *verticalLayout;
+QLabel *label;
+QPushButton *pushButton;
+QPushButton *pushButton_2;
+QDialog *dialog;
 
-MainWindow *mw;
+GameWindow *gwindow;
+RecordsWindow *rwindow;
 
+QString name;
+public:
+    MainWindow(){
+        dialog=new QDialog();
+        setupUi(dialog);
+
+        bool ok;
+        name = QInputDialog::getMultiLineText(Q_NULLPTR,"Введите ваше имя:", "Ваше имя:", "Сергей Пахомов", &ok);
+        if (!ok)name="Без имени";
+    }
+    void setupUi(QDialog *Dialog)
+    {
+       Dialog->resize(567, 470);
+       horizontalLayout = new QHBoxLayout(Dialog);
+       frame = new QFrame(Dialog);
+       frame->setMinimumSize(QSize(271, 261));
+       frame->setMaximumSize(QSize(271, 261));
+       frame->setFrameShape(QFrame::StyledPanel);
+       frame->setFrameShadow(QFrame::Raised);
+       verticalLayout = new QVBoxLayout(frame);
+       label = new QLabel(frame);
+       label->setMinimumSize(QSize(251, 127));
+       label->setText("Какие самолеты?");
+       QFont font;
+       font.setFamily(QStringLiteral("Segoe UI"));
+       font.setPointSize(20);
+       font.setBold(false);
+       font.setWeight(50);
+       label->setFont(font);
+       label->setAlignment(Qt::AlignCenter);
+       verticalLayout->addWidget(label);
+       pushButton = new QPushButton(frame);
+       pushButton->setMinimumSize(QSize(0, 51));
+       pushButton->setFocus();
+       pushButton->setText("Начать игру");
+       QObject::connect(pushButton,&QPushButton::clicked,[this](){
+           dialog->hide();
+           gwindow = new GameWindow([this](int count){
+               //Если передаешь лямбду в параметры конструктора, на объект в полях класса ОБЯЗАТЕЛЬНО должна быть ссылка
+               //Иначе память очистится и вызовется дичь, а не метод класса, в котором идет работа
+               QMessageBox msg;
+               msg.setText("Игра окончена. Вы сбили "+QVariant(count).toString()+" самолетов!"+name);
+               msg.exec();
+
+               QSqlQuery deleteq;
+               deleteq.exec("DELETE FROM Рекорды WHERE  Рекорды.[Имя] LIKE '"+name+"' AND Рекорды.[Число сбитых самолетов]<"+QVariant(count).toString()+";");
+
+               qDebug() << deleteq.lastError();
+
+               QSqlQuery checkq;
+               int checkcount=0;
+               checkq.exec("SELECT Рекорды.[Имя], Рекорды.[Число сбитых самолетов] FROM Рекорды WHERE  Рекорды.[Имя] LIKE '"+name+"' AND Рекорды.[Число сбитых самолетов]>="+QVariant(count).toString()+";");
+               while(checkq.next()){
+                   checkcount++;
+               }
+
+               qDebug() << deleteq.lastError();
+               qDebug() << "Count="<<checkcount;
+
+               if(checkcount==0){
+                   QSqlQuery addq;
+                   addq.exec("INSERT INTO Рекорды([Имя], [Число сбитых самолетов] )VALUES ('"+name+"',"+QVariant(count).toString()+");");
+                   qDebug() << addq.lastError();
+                   qDebug() << "Добавление";
+               }
+
+               dialog->show();
+           });
+       });
+
+       verticalLayout->addWidget(pushButton);
+       pushButton_2 = new QPushButton(frame);
+       pushButton_2->setMinimumSize(QSize(0, 51));
+       pushButton_2->setText("Рекорды");
+       QObject::connect(pushButton_2,&QPushButton::clicked,[this](){
+           RecordsWindow rw;
+       });
+       verticalLayout->addWidget(pushButton_2);
+       horizontalLayout->addWidget(frame);
+   }
+
+   void Show(){
+       dialog->show();
+   }
+
+   void Hide(){
+       dialog->hide();
+   }
+
+};
 
 int main(int argc, char *argv[])
 {
@@ -243,12 +360,11 @@ int main(int argc, char *argv[])
     //Загрузить можно до 16 килобайт, так что сохраняем только через Photoshop, а не Paint!!!
     //Использование: раскоментировать код снизу, закоментить все после
     //Скомпилировать и запустить бинарник, перенаправив поток ввода-вывода в файл.
-    /*QFile file("/bomb.png");
+    /*QFile file("/database.mdb");
     file.open(QIODevice::ReadOnly);
-    std::cout << file.readAll().toHex().toStdString();
+    std::cout << qCompress(file.readAll()).toHex().toStdString();
     file.close();
     return 0;*/
-
 
     //Распаковка ресурсов
     if(!QFile::exists(a.applicationDirPath()+"/background.png")){
@@ -275,16 +391,26 @@ int main(int argc, char *argv[])
         file.write(res.GetBomb());
         file.close();
     }
+    if(!QFile::exists(a.applicationDirPath()+"/database.mdb")){
+        QFile file(a.applicationDirPath()+"/database.mdb");
+        file.open(QIODevice::WriteOnly);
+        file.write(res.GetDb());
+        file.close();
+    }
 
-    //mw=new MainWindow();
-    //mw->Show();
-
-    GameWindow window([](int count){
+    //Подключение к базе данных
+    QSqlDatabase db = QSqlDatabase::addDatabase("QODBC");
+    db.setDatabaseName("Driver={Microsoft Access Driver (*.mdb)};DSN='';DBQ="+a.applicationDirPath()+"/database.mdb");
+    if(!db.open())
+    {
         QMessageBox msg;
-        msg.setText("Игра окончена. Вы сбили "+QVariant(count).toString()+" самолетов!");
+        msg.setText("Не удается подключиться к базе данных!"+db.lastError().text());
         msg.exec();
-       });
+        return 0;
+    };
 
+    MainWindow mw;
+    mw.Show();
 
     return a.exec();
 }
